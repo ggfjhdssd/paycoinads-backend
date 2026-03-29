@@ -12,18 +12,25 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ==================== Security & Middlewares ====================
-app.use(helmet());
-// CORS — allow Vercel frontend + any origin (set FRONTEND_URL in Render env)
-const allowedOrigins = process.env.FRONTEND_URL
-    ? [process.env.FRONTEND_URL, 'http://localhost:3000']
-    : '*';
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','X-Telegram-Init-Data','Authorization']
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
 }));
-app.use(express.json({ limit: '10kb' }));
+
+// CORS — open for all origins (Telegram WebApp runs from varied origins)
+app.use(cors({
+    origin: '*',
+    methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
+    allowedHeaders: ['Content-Type','X-Telegram-Init-Data','Authorization','Accept'],
+    exposedHeaders: ['Content-Length'],
+    maxAge: 86400
+}));
+
+// Handle OPTIONS preflight explicitly
+app.options('*', cors());
+
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // ==================== HTML Escape Function ====================
 function escapeHTML(text) {
