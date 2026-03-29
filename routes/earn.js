@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 // ==================== Task 7 ခု, maxCount=4, between-watch cooldown=1min, reset=20min ====================
 // reward loaded dynamically from DB config (TASK_REWARD), default 40
-const TASK_BASE = { maxCount: 4, watchCooldown: 60 * 1000, dailyCooldown: 20 * 60 * 1000 }; // 20-minute reset
+const TASK_BASE = { maxCount: 4, watchCooldown: 60 * 1000, dailyCooldown: 10 * 60 * 1000 }; // 10-minute reset
 const VIDEO_TASK_LIMITS = {
     task1: { ...TASK_BASE, reward: 40, blockId: '23898' },
     task2: { ...TASK_BASE, reward: 40, blockId: '23919' },
