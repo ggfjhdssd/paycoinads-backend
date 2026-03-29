@@ -163,5 +163,47 @@ router.post('/video', async (req, res) => {
     }
 });
 
+// ==================== POST /api/earn/reset-task ====================
+// Called by frontend when the 10-minute timer expires — resets a single task's
+// count/lastClaim/firstClaimTime back to zero so the user can watch again.
+router.post('/reset-task', async (req, res) => {
+    try {
+        if (!req.tgUser) return res.status(401).json({ error: 'User not authenticated' });
+
+        const { taskId } = req.body;
+        if (!taskId || !VALID_TASK_IDS.includes(taskId)) {
+            return res.status(400).json({ error: 'Invalid task ID' });
+        }
+
+        const User = mongoose.model('User');
+        const user = await User.findOne({ userId: req.tgUser.id });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (user.banned) return res.status(403).json({ error: 'Your account is banned' });
+
+        const now = Date.now();
+        const cfg = VIDEO_TASK_LIMITS[taskId];
+        const taskData = user.videoTasks?.get(taskId) || { count: 0, lastClaim: 0, firstClaimTime: 0 };
+
+        // Only reset if the 10-minute cooldown has actually elapsed (server-side guard)
+        if (taskData.firstClaimTime && taskData.firstClaimTime > 0) {
+            const elapsed = now - taskData.firstClaimTime;
+            if (elapsed < cfg.dailyCooldown - 5000) { // 5s grace
+                const resetIn = Math.ceil((cfg.dailyCooldown - elapsed) / 1000);
+                return res.status(400).json({ error: 'Reset cooldown not elapsed', resetIn });
+            }
+        }
+
+        // Reset this task
+        user.videoTasks.set(taskId, { count: 0, lastClaim: 0, firstClaimTime: 0 });
+        await user.save();
+
+        console.log(`🔄 User ${req.tgUser.id} reset task ${taskId}`);
+        res.json({ success: true, taskId });
+    } catch (err) {
+        console.error('❌ Error in /api/earn/reset-task:', err);
+        res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+});
+
 console.log('✅ earn.js router loaded successfully');
 module.exports = router;
