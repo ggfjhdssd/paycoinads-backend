@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 
-// ==================== Task 7 ခု, maxCount=4, between-watch cooldown=1min, reset=20min ====================
+// ==================== Task 7 ခု, maxCount=4, between-watch cooldown=1min, reset=10min ====================
 // reward loaded dynamically from DB config (TASK_REWARD), default 40
 const TASK_BASE = { maxCount: 4, watchCooldown: 60 * 1000, dailyCooldown: 10 * 60 * 1000 }; // 10-minute reset
 const VIDEO_TASK_LIMITS = {
