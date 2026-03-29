@@ -25,7 +25,7 @@ app.use(cors({
     credentials: true
 }));
 app.options('*', cors());
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '15mb' })); // Allow large base64 screenshots for VIP purchase
 
 // ==================== HTML Escape Function ====================
 function escapeHTML(text) {
