@@ -12,25 +12,20 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ==================== Security & Middlewares ====================
-app.use(helmet({
-    crossOriginResourcePolicy: false,
-    crossOriginOpenerPolicy: false,
-}));
-
-// CORS — open for all origins (Telegram WebApp runs from varied origins)
+app.use(helmet());
+// CORS — allow Vercel frontend + open for Telegram WebApp
 app.use(cors({
-    origin: '*',
+    origin: [
+        'https://paycoinads-frontend.vercel.app',
+        'https://paycoinads-telegram-app.vercel.app',
+        'http://localhost:3000'
+    ],
     methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
-    allowedHeaders: ['Content-Type','X-Telegram-Init-Data','Authorization','Accept'],
-    exposedHeaders: ['Content-Length'],
-    maxAge: 86400
+    allowedHeaders: ['Content-Type','X-Telegram-Init-Data','Authorization'],
+    credentials: true
 }));
-
-// Handle OPTIONS preflight explicitly
 app.options('*', cors());
-
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(express.json({ limit: '10kb' }));
 
 // ==================== HTML Escape Function ====================
 function escapeHTML(text) {
