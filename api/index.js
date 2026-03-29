@@ -658,7 +658,9 @@ app.post('/api/claim/task/:taskId', authMiddleware, maintenanceCheck, claimLimit
         const now = Date.now();
         const cooldown = await getConfig('TASK_COOLDOWN');
         const lastClaim = user.tasks.get(taskId) || 0;
-        if (now - lastClaim < cooldown) {
+        // Grace buffer of 5 seconds to account for frontend/backend clock drift
+        const GRACE_MS = 5000;
+        if (now - lastClaim < cooldown - GRACE_MS) {
             return res.status(400).json({ error: 'Not ready', remaining: cooldown - (now - lastClaim) });
         }
 
@@ -712,7 +714,10 @@ app.get('/api/adsgram-reward', async (req, res) => {
             }
             cooldownTime = await getConfig('TASK_COOLDOWN');
             const lastClaim = user.tasks.get(taskId) || 0;
-            if (now - lastClaim < cooldownTime) {
+            // Grace buffer of 5 seconds to account for frontend/backend clock drift
+            // and the time the user spends watching the ad after the pre-check passes.
+            const GRACE_MS = 5000;
+            if (now - lastClaim < cooldownTime - GRACE_MS) {
                 return res.status(400).send('Task is on cooldown');
             }
             // Use HOME_TASK_REWARD if request comes from home tab
