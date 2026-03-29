@@ -169,6 +169,7 @@ const userSchema = new mongoose.Schema({
     adCooldownEndTime: { type: Number, default: 0 },
     vipMode: { type: Boolean, default: false },
     vipExpiry: { type: Date, default: null },
+    lastTaskReset: { type: Number, default: 0 }, // timestamp of last global task reset
     gameSession: {
         active: { type: Boolean, default: false },
         startTime: { type: Number, default: 0 },
@@ -365,6 +366,7 @@ async function getOrCreateUser(tgUser, referrerId = null) {
             adCooldownEndTime: 0,
             vipMode: false,
             vipExpiry: null,
+            lastTaskReset: 0,
             gameSession: { active: false, startTime: 0, tempScore: 0 }
         });
         await user.save();
@@ -612,7 +614,8 @@ app.get('/api/user', authMiddleware, maintenanceCheck, async (req, res) => {
             lastAdWatch: user.lastAdWatch,
             adCooldownEndTime: user.adCooldownEndTime,
             vipMode: user.vipMode || false,
-            vipExpiry: user.vipExpiry || null
+            vipExpiry: user.vipExpiry || null,
+            lastTaskReset: user.lastTaskReset || 0
         });
     } catch (err) {
         console.error('❌ Error in /api/user:', err);
@@ -1130,7 +1133,8 @@ app.get('/api/admin/users', adminMiddleware, async (req, res) => {
             lastAdWatch: u.lastAdWatch,
             adCooldownEndTime: u.adCooldownEndTime,
             vipMode: u.vipMode || false,
-            vipExpiry: u.vipExpiry || null
+            vipExpiry: u.vipExpiry || null,
+            lastTaskReset: u.lastTaskReset || 0
         }));
         console.log(`✅ Bot fetched ${users.length} users`);
         res.json({ users: userList, total: users.length });
@@ -1403,6 +1407,51 @@ app.post('/api/admin/users/:userId/vip', adminMiddleware, async (req, res) => {
 
         res.json({ success: true, vipMode: user.vipMode, vipExpiry: user.vipExpiry });
     } catch (err) {
+        res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+});
+
+// ==================== User: Global Reset All Tasks ====================
+// Regular users: 20-min cooldown | VIP users: 10-min cooldown (auto-called by frontend)
+app.post('/api/user/reset-tasks', authMiddleware, maintenanceCheck, async (req, res) => {
+    try {
+        await connectToDatabase();
+        const user = await getOrCreateUser(req.tgUser);
+        if (user.banned) return res.status(403).json({ error: 'Banned' });
+
+        const now = Date.now();
+        const isVip = user.vipMode && user.vipExpiry && new Date(user.vipExpiry) > new Date();
+        const cooldownMs = isVip ? 10 * 60 * 1000 : 20 * 60 * 1000;
+        const lastReset = user.lastTaskReset || 0;
+        const GRACE_MS = 5000;
+
+        if (now - lastReset < cooldownMs - GRACE_MS) {
+            return res.status(400).json({
+                error: 'Cooldown not elapsed',
+                remaining: cooldownMs - (now - lastReset),
+                cooldownMs
+            });
+        }
+
+        // Reset home tasks (tasks map — task1 to task4)
+        user.tasks = new Map();
+        user.markModified('tasks');
+
+        // Reset earn tasks (videoTasks map — task1 to task7)
+        const EARN_TASK_IDS = ['task1','task2','task3','task4','task5','task6','task7'];
+        if (!user.videoTasks) user.videoTasks = new Map();
+        EARN_TASK_IDS.forEach(tid => {
+            user.videoTasks.set(tid, { count: 0, lastClaim: 0, firstClaimTime: 0 });
+        });
+        user.markModified('videoTasks');
+
+        user.lastTaskReset = now;
+        await user.save();
+
+        console.log(`🔄 User ${req.tgUser.id} reset ALL tasks (VIP: ${isVip}). cooldown: ${cooldownMs/60000}min`);
+        res.json({ success: true, lastTaskReset: now, cooldownMs, isVip });
+    } catch (err) {
+        console.error('❌ Error in /api/user/reset-tasks:', err);
         res.status(500).json({ error: 'Server error: ' + err.message });
     }
 });
