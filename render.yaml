@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: paycoinads-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false        # Set manually in Render dashboard
+      - key: BOT_TOKEN
+        sync: false        # Set manually in Render dashboard
+      - key: ADMIN_ID
+        sync: false        # Set manually in Render dashboard
+      - key: RENDER_BOT_URL
+        sync: false        # URL of your Telegram bot server
+      - key: FRONTEND_URL
+        sync: false        # Your Vercel frontend URL e.g. https://paycoinads.vercel.app
+      - key: MIN_WITHDRAWAL
+        value: "100000"
