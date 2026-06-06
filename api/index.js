@@ -214,8 +214,31 @@ const DEFAULT_CONFIG = {
     TASK_COOLDOWN: 15 * 60 * 1000, // 15 minutes
     DAILY_COOLDOWN: 24 * 60 * 60 * 1000,
     CHANNEL_URL: 'https://t.me/PayCoinADS',
+    CHANNEL_JOIN_REQUIRED: true,
     MAINTENANCE_MODE: false,
-    MAINTENANCE_MESSAGE: 'Site is under maintenance. Please check back later.'
+    MAINTENANCE_MESSAGE: 'Site is under maintenance. Please check back later.',
+    // VIP Card visibility (admin can hide/show)
+    VIP_CARD_VISIBLE: true,
+    // Currency mode: 'coin' = 🪙, 'mmk' = ကျပ်
+    CURRENCY_MODE: 'coin',
+    // Home tab task labels (customizable)
+    DAILY_CHECKIN_LABEL: 'Daily Check-in',
+    DAILY_CHECKIN_REWARD_LABEL: '+24 coins (Watch Ad)',
+    TASK1_LABEL: 'Task 1',
+    TASK1_REWARD_LABEL: '+45 coins (Watch Ad)',
+    TASK1_BTN_LABEL: 'Get +45',
+    TASK2_LABEL: 'Task 2',
+    TASK2_REWARD_LABEL: '+45 coins (Watch Ad)',
+    TASK2_BTN_LABEL: 'Get +45',
+    TASK3_LABEL: 'Task 3',
+    TASK3_REWARD_LABEL: '+45 coins (Watch Ad)',
+    TASK3_BTN_LABEL: 'Get +45',
+    TASK4_LABEL: 'Task 4',
+    TASK4_REWARD_LABEL: '+45 coins (Watch Ad)',
+    TASK4_BTN_LABEL: 'Get +45',
+    // Earn tab labels
+    EARN_REWARD_LABEL: '+45🪙',
+    EARN_WATCH_LABEL: 'ကြည့်ရန် အသင့်',
 };
 
 async function getConfig(key) {
@@ -783,6 +806,29 @@ app.post('/api/withdraw', authMiddleware, maintenanceCheck, claimLimiter, async 
     }
 });
 
+// ==================== PUBLIC UI CONFIG ====================
+app.get('/api/ui-config', async (req, res) => {
+    try {
+        await connectToDatabase();
+        const keys = [
+            'VIP_CARD_VISIBLE', 'CURRENCY_MODE',
+            'CHANNEL_URL', 'CHANNEL_JOIN_REQUIRED',
+            'DAILY_CHECKIN_LABEL', 'DAILY_CHECKIN_REWARD_LABEL',
+            'TASK1_LABEL', 'TASK1_REWARD_LABEL', 'TASK1_BTN_LABEL',
+            'TASK2_LABEL', 'TASK2_REWARD_LABEL', 'TASK2_BTN_LABEL',
+            'TASK3_LABEL', 'TASK3_REWARD_LABEL', 'TASK3_BTN_LABEL',
+            'TASK4_LABEL', 'TASK4_REWARD_LABEL', 'TASK4_BTN_LABEL',
+            'EARN_REWARD_LABEL', 'EARN_WATCH_LABEL',
+            'REFERRAL_REWARD'
+        ];
+        const result = {};
+        for (const k of keys) result[k] = await getConfig(k);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== LEADERBOARD (Top 5 by Coins) ====================
 app.get('/api/leaderboard', async (req, res) => {
     try {
@@ -794,14 +840,28 @@ app.get('/api/leaderboard', async (req, res) => {
             .lean();
 
         const leaderboard = users.map((user, index) => {
-            let name = user.username || user.firstName;
-            if (!name) {
+            let fullName = user.username || user.firstName;
+            if (!fullName) {
                 const userIdStr = user.userId.toString();
-                name = `User${userIdStr.slice(-4)}`;
+                fullName = `User${userIdStr.slice(-4)}`;
+            }
+            // Truncate: skip first char, show rest (yoonthitsar -> thitsar)
+            let name = fullName;
+            if (fullName.length > 5) {
+                // Find first uppercase or split point after char 1
+                const withoutFirst = fullName.slice(1);
+                const upperMatch = withoutFirst.match(/[A-Z]/);
+                if (upperMatch) {
+                    name = fullName.slice(fullName.indexOf(upperMatch[0], 1));
+                } else {
+                    // No uppercase: show last 60% of the name
+                    name = fullName.slice(Math.ceil(fullName.length * 0.4));
+                }
             }
             return {
                 rank: index + 1,
                 name: name,
+                fullName: fullName,
                 photo: user.photoUrl || null,
                 totalCoins: user.coins
             };
