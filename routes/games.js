@@ -233,8 +233,8 @@ router.get('/invite-status', async (req, res) => {
             remainingForNext: remainingForNext,
             tickets: user.spinTickets,
             message: claimableTickets > 0 
-                ? `You have ${claimableTickets} ticket${claimableTickets > 1 ? 's' : ''} to claim!`
-                : `Invite ${remainingForNext} more friend${remainingForNext !== 1 ? 's' : ''} for a ticket.`
+                ? `🎟️ Ticket ${claimableTickets} ခု claim လုပ်နိုင်ပြီ!`
+                : `🎁 သူငယ်ချင်း ${remainingForNext} ယောက်ထပ်ဖိတ်ရင် ticket 1 ခုရမည်`
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
