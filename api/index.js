@@ -215,6 +215,7 @@ const DEFAULT_CONFIG = {
     DAILY_COOLDOWN: 24 * 60 * 60 * 1000,
     CHANNEL_URL: 'https://t.me/PayCoinADS',
     CHANNEL_JOIN_REQUIRED: true,
+    VPN_MODE: true, // true = VPN gate on, false = bypass VPN check
     MAINTENANCE_MODE: false,
     MAINTENANCE_MESSAGE: 'Site is under maintenance. Please check back later.',
     // VIP Card visibility (admin can hide/show)
@@ -812,7 +813,7 @@ app.get('/api/ui-config', async (req, res) => {
         await connectToDatabase();
         const keys = [
             'VIP_CARD_VISIBLE', 'CURRENCY_MODE',
-            'CHANNEL_URL', 'CHANNEL_JOIN_REQUIRED',
+            'CHANNEL_URL', 'CHANNEL_JOIN_REQUIRED', 'VPN_MODE',
             'DAILY_CHECKIN_LABEL', 'DAILY_CHECKIN_REWARD_LABEL',
             'TASK1_LABEL', 'TASK1_REWARD_LABEL', 'TASK1_BTN_LABEL',
             'TASK2_LABEL', 'TASK2_REWARD_LABEL', 'TASK2_BTN_LABEL',
